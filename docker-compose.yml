@@ -1,0 +1,27 @@
+version: '3.4'
+
+volumes:
+  esdata:
+
+services:
+  elasticsearch:
+    image:  docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    mem_limit: 2g   
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports: 
+      - "9200:9200"
+    command: >
+     /bin/sh -c "./bin/elasticsearch-plugin list | grep -q analysis-phonetic 
+     || ./bin/elasticsearch-plugin install analysis-phonetic; 
+     /usr/local/bin/docker-entrypoint.sh"
+  moviesearch.api:
+    image: ${DOCKER_REGISTRY-}moviesearchapi
+    build:
+      context: .
+      dockerfile: MovieSearch.API\Dockerfile
