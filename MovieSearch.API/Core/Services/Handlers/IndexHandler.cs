@@ -32,7 +32,7 @@ namespace MovieSearch.API.Core.Services.Handlers
 
                 var indexName = Constants.MovieDataIndexName;
 
-                if ((await this.elasticClient.Indices.ExistsAsync(Constants.MovieDataIndexName)).Exists)
+                if (request.DeleteIndex && (await this.elasticClient.Indices.ExistsAsync(Constants.MovieDataIndexName)).Exists)
                 {
                     await this.elasticClient.Indices.DeleteAsync(Constants.MovieDataIndexName);
                 }
@@ -79,23 +79,6 @@ namespace MovieSearch.API.Core.Services.Handlers
 
                     this.logger.LogDebug($"Starting Index - {indexStartTime}");
 
-                    //var waitHandle = new CountdownEvent(1);
-
-                    //var bulkAll = this.elasticClient.BulkAll(
-                    //                   currentMovies, b => b.Index(indexName)
-                    //                                   .BackOffRetries(2)
-                    //                                   .BackOffTime("30s")
-                    //                                   .RefreshOnCompleted(true)
-                    //                                   .MaxDegreeOfParallelism(5)
-                    //                                   .Size(pageSize));
-
-                    //bulkAll.Subscribe(new Nest.BulkAllObserver(
-                    //    onNext: (b) => { this.logger.LogDebug("."); },
-                    //    onError: (e) => { response.Error(e.Message); },
-                    //    onCompleted: () => waitHandle.Signal()));
-
-                    //waitHandle.Wait();
-
                     await this.elasticClient.IndexManyAsync(currentMovies, indexName);
 
                     var indexCompletedTime = DateTime.Now;
@@ -115,12 +98,12 @@ namespace MovieSearch.API.Core.Services.Handlers
 
         public Nest.ITypeMapping MapMovie(Nest.TypeMappingDescriptor<Movie> mapping)
         {
-            return mapping.AutoMap();
-                          //.Properties(p => p.Text(t => t.Name(n => n.Name)
-                          //                           .Fielddata()
-                          //                           .Fields(f => f.Text(ft => t.Name("phonetic")
-                          //                                                   .Analyzer(ElasticSearchHelper.GetCustomPhoneticAnalyzerName()))))
-                                            //.Number(t => t.Name(n => n.Year)));
+            return mapping.AutoMap().Properties(p => p.Text(t => t.Name(n => n.MovieName)
+                                                     .Fielddata()
+                                                     .Fields(f => f.Text(ft => ft.Name("phonetic")
+                                                                             .Analyzer(ElasticSearchHelper.GetCustomPhoneticAnalyzerName()))))
+                                                      .Nested<Genre>(n => n.Name(mv => mv.Genres)
+                                                                           .Properties(pp => pp.Text(t => t.Name(g => g.Name).Fielddata()))));
         }
     }
 }

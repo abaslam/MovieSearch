@@ -24,4 +24,4 @@ services:
     image: ${DOCKER_REGISTRY-}moviesearchapi
     build:
       context: .
-      dockerfile: MovieSearch.API\Dockerfile
+      dockerfile: MovieSearch.API\Dockerfile    

@@ -15,7 +15,7 @@ namespace MovieSearch.API
             var appSettings = new AppSettings();
             builder.Configuration.GetSection(nameof(AppSettings)).Bind(appSettings);
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(Program).Assembly));

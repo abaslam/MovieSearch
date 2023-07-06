@@ -8,5 +8,7 @@ namespace MovieSearch.API.Core.Services.Entities
     {
         [FromBody]
         public IFormFile DataFile { get; set; }
+
+        public bool DeleteIndex { get; set; }
     }
 }

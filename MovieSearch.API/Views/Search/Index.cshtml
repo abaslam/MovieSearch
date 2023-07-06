@@ -1,0 +1,197 @@
+﻿@model MovieSearch.API.ViewModels.IndexVM
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<header>
+    <nav class="navbar bg-primary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <a class="navbar-brand">Movie Search</a>
+        </div>
+    </nav>
+</header>
+<body>
+    <div id="searchMainApp">
+        <div class="row">
+
+            <div class="col-auto">
+                <label for="searchTerm" class="col-form-label">Search Term</label>
+            </div>
+            <div class="col-8">
+                <input type="text" id="searchTerm" v-model="searchTerm" class="form-control" v-on:keyup.enter="search()">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-default" type="submit" @@click="search()">Search</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-default" type="submit" @@click="clear()">Clear</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <ul class="list-group" v-if="movieLoaded && movies.length >0">
+                    <li class="list-group-item" v-for="movie in movies" :key="movie.Id">
+                        {{movie.movieName}}
+                        <span class="badge text-bg-primary">{{movie.year}}</span>
+                        <span class="badge text-bg-secondary" v-for="genre in movie.genres">{{genre.name}}</span>
+                    </li>
+                </ul>
+
+                <div class="alert alert-primary" role="alert" v-if="movieLoaded && movies.length ==0">
+                    No movies found
+                </div>
+            </div>
+            <div class="col-md-4">
+                <ul class="bd-links-nav list-unstyled">
+                    <li class="bd-links-group py-2">
+                        <strong class="bd-links-heading fw-semibold">
+                            Year(s)
+                        </strong>
+
+                        <ul class="list-unstyled fw-normal pb-2 small">
+                            <li v-for="year in years">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" @@click="toggleYear($event.target.checked, year)">
+                                    <label class="form-check-label" for="flexCheckDefault">
+                                        {{year}} <span class="badge text-bg-primary">{{yearCount(year)}}</span>
+                                    </label>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="bd-links-group py-2">
+                        <strong class="bd-links-heading fw-semibold">
+                            Genre(s)
+                        </strong>
+
+                        <ul class="list-unstyled fw-normal pb-2 small">
+                            <li v-for="genre in genres">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" @@click="toggleGenre($event.target.checked, genre)">
+                                    <label class="form-check-label" for="flexCheckDefault">
+                                        {{genre}} <span class="badge text-bg-primary">{{genreCount(genre)}}</span>
+                                    </label>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var searchMainApp = new Vue({
+            el: '#searchMainApp',
+            data: {
+                movieLoaded: false,
+                searchTerm: '',
+                selectedYears: [],
+                selectedGenres: [],
+                movies: [],
+                years: [],
+                genres: [],
+                searchYears: [],
+                searchGenres: [],
+                totalCount: 0
+            },
+            methods: {
+                yearCount: function (year) {
+                    var filteredYear = this.searchYears.filter(function (item) {
+                        return item.key == year;
+                    });
+
+                    if (filteredYear && filteredYear.length > 0) {
+                        return filteredYear[0].value;
+                    }
+
+                    return 0;
+                },
+                genreCount: function (genre) {
+                    var filteredGenre = this.searchGenres.filter(function (item) {
+                        return item.key == genre;
+                    });
+
+                    if (filteredGenre && filteredGenre.length > 0) {
+                        return filteredGenre[0].value;
+                    }
+
+                    return 0;
+                },
+                toggleYear: function (checked, year) {
+                    if (checked) {
+                        this.selectedYears.push(year);
+                    }
+                    else {
+                        var index = this.selectedYears.indexOf(year);
+                        if (index > -1) {
+                            this.selectedYears.splice(index, 1);
+                        }
+                    }
+                },
+                toggleGenre: function (checked, genre) {
+                    if (checked) {
+                        this.selectedGenres.push(genre);
+                    }
+                    else {
+                        var index = this.selectedGenres.indexOf(genre);
+                        if (index > -1) {
+                            this.selectedGenres.splice(index, 1);
+                        }
+                    }
+                },
+                autoComplete: function(){
+                    if(this.seachTerm && this.searchTerm.length > 3){
+                        this.search();
+                    }
+                },
+                search: function (reset) {
+                    var that = this;
+                    that.movieLoaded = false;
+                    axios.post('/search/movies', {
+                        searchTerm: this.searchTerm,
+                        years: this.selectedYears,
+                        genres: this.selectedGenres,
+                        pageSize: 10000
+                    }).then(function (response) {
+                        that.movieLoaded = true;
+                        that.movies = response.data.movies;
+                        that.searchYears = response.data.years;
+                        that.searchGenres = response.data.genres;
+                        that.totalCount = response.data.totalCount;
+                    }).catch(function (e) {
+                        console.log(e);
+                    });
+                },
+                clear: function () {
+                    this.searchTerm = '';
+                    this.movies = [];
+                    this.totalCount = 0;
+                    this.selectedYears = [];
+                    this.selectedGenres = [];
+                    this.searchYears = [];
+                    this.searchGenres = [];
+                    this.movieLoaded = false;
+                }
+            },
+            created: function () {
+                var that = this;
+                this.$nextTick(function () {
+                    axios.get('/search/criteria')
+                        .then(function (response) {
+                            that.years = response.data.years;
+                            that.genres = response.data.genres;
+                        }).catch(function (e) {
+                            console.log(e);
+                        });
+                });
+            }
+        });
+    });
+</script>
+
